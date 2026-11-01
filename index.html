@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Чифирник с индикатором</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Golos+Text:wght@400;500;700;900&family=Neucha&display=swap">
+<style>
+/* Layout: телемагазин поверх слайдов — солнечный «взрыв» в первом экране, дальше белая бумага,
+   красные заголовки и ступенчатые полосы из исходной презентации. Одна тема, светлая, намеренно. */
+:root{
+  --paper:#fffdf7;
+  --ink:#1f262e;
+  --muted:#5b6670;
+  --red:#b3261e;
+  --orange:#f08a1d;
+  --slate:#34404d;
+  --steel:#a8b5bc;
+  --sun:#ffd83d;
+  --sun2:#ffef9a;
+  --line:#e4e0d6;
+  --led:#d4332a;
+  --display:"Rubik Mono One","Arial Black",Impact,sans-serif;
+  --body:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --hand:"Neucha","Comic Sans MS","Marker Felt",cursive;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;margin:0;overflow-x:hidden}
+.wrap{width:100%;max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+section{padding-block:72px;display:flex;flex-direction:column;justify-content:center}
+/* каждый раздел — на высоту экрана (на широких экранах) */
+@media (min-width:901px) and (min-height:560px){section{min-height:100vh;min-height:100svh}}
+h1,h2,h3{text-wrap:balance;margin:0}
+h2{font-family:var(--display);font-weight:400;color:var(--red);font-size:clamp(26px,4.2vw,44px);line-height:1.12;letter-spacing:-.01em;text-transform:uppercase}
+h3{font-size:20px;font-weight:700}
+p{margin:0}
+.lead{font-size:clamp(17px,1.8vw,20px);color:var(--muted);max-width:62ch}
+.hand{font-family:var(--hand)}
+.eyebrow{font-weight:900;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--slate)}
+svg{display:block;max-width:100%}
+:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
+
+/* ---------- running ticker ---------- */
+.ticker{background:var(--red);color:#fff;font-weight:900;font-size:14px;letter-spacing:.08em;text-transform:uppercase;overflow:hidden;white-space:nowrap;padding-block:9px}
+.ticker span{display:inline-block;padding-left:100%;animation:tick 28s linear infinite}
+@keyframes tick{to{transform:translateX(-100%)}}
+
+/* ---------- hero ---------- */
+.hero{position:relative;overflow:hidden;background:var(--sun);padding-block:32px 40px;isolation:isolate;display:flex;flex-direction:column;justify-content:center;min-height:calc(100vh - 38px);min-height:calc(100svh - 38px)}
+.hero::before{content:"";position:absolute;inset:-60%;z-index:-1;
+  background:repeating-conic-gradient(from 0deg at 62% 46%,var(--sun2) 0 7deg,var(--sun) 7deg 15deg);
+  animation:spin 90s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:32px;align-items:center}
+.hero-copy{min-width:0;display:flex;flex-direction:column;gap:20px;container-type:inline-size}
+.hero h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,6.6cqi,70px);line-height:1.02;color:var(--red);text-transform:uppercase;letter-spacing:-.02em;text-shadow:3px 3px 0 #fff}
+.hero h1 u{text-decoration-thickness:6px;text-underline-offset:8px;text-decoration-color:var(--slate)}
+.hero .lead{color:var(--ink)}
+.price-row{display:flex;flex-wrap:wrap;align-items:center;gap:14px 22px}
+.old{font-size:24px;font-weight:700;color:var(--slate);text-decoration:line-through;text-decoration-color:var(--red);text-decoration-thickness:3px}
+.new{font-family:var(--display);font-size:clamp(40px,5vw,56px);color:var(--ink);line-height:1}
+.burst{display:grid;place-items:center;width:88px;height:88px;background:var(--red);color:#fff;font-family:var(--display);font-size:20px;
+  clip-path:polygon(50% 0,61% 13%,77% 6%,80% 23%,96% 25%,89% 40%,100% 52%,87% 62%,93% 78%,76% 80%,71% 96%,57% 88%,44% 100%,35% 86%,18% 93%,16% 76%,0 70%,10% 56%,2% 40%,17% 33%,15% 16%,32% 15%,38% 0);
+  transform:rotate(-10deg)}
+.btns{display:flex;flex-wrap:wrap;gap:12px}
+.btn{font:inherit;font-weight:900;font-size:17px;border:3px solid var(--ink);border-radius:999px;padding:14px 26px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:10px;transition:transform .12s,box-shadow .12s}
+.btn-main{background:var(--red);color:#fff;box-shadow:4px 4px 0 var(--ink)}
+.btn-alt{background:#fff;color:var(--ink);box-shadow:4px 4px 0 var(--ink)}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.timer{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-weight:700;font-size:15px}
+.timer b{font-family:var(--display);font-weight:400;font-size:22px;background:var(--ink);color:var(--sun);padding:4px 10px;border-radius:6px;font-variant-numeric:tabular-nums}
+.check-msg{min-height:1.6em;font-family:var(--hand);font-size:22px;color:var(--slate)}
+.hero-art{position:relative;min-width:0}
+.hero-art svg{width:100%;height:auto;max-width:440px;max-height:calc(100svh - 120px);margin-inline:auto}
+.stamp{position:absolute;top:2%;left:0;background:#fff;border:3px solid var(--ink);border-radius:10px;padding:8px 12px;font-weight:900;font-size:13px;line-height:1.25;transform:rotate(-7deg);box-shadow:3px 3px 0 var(--ink)}
+.stamp em{font-style:normal;color:var(--red);font-size:22px;display:block}
+#glow{transition:opacity .08s}
+
+/* ---------- zigzag stripes from the slides ---------- */
+.zig{height:46px;background:
+  linear-gradient(135deg,transparent 33.3%,var(--slate) 33.3% 50%,transparent 50% 83.3%,var(--slate) 83.3%) 0 0/46px 46px,
+  var(--paper)}
+.zig.o{background:
+  linear-gradient(135deg,transparent 33.3%,var(--orange) 33.3% 50%,transparent 50% 83.3%,var(--orange) 83.3%) 0 0/46px 46px,var(--paper)}
+
+/* ---------- intro (из документа) ---------- */
+.intro{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start}
+.intro .num{font-family:var(--display);font-size:13px;color:#fff;background:var(--slate);padding:6px 10px;border-radius:4px;white-space:nowrap}
+.intro p{font-size:clamp(19px,2.2vw,24px);line-height:1.45;max-width:58ch}
+.intro p strong{color:var(--red)}
+.to-pain{color:var(--red);text-decoration:underline;text-decoration-style:wavy;text-decoration-thickness:2px;text-underline-offset:5px}
+.to-pain:hover{text-decoration-style:solid}
+#beda,#rezhimy{scroll-margin-top:24px}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* ---------- pains ---------- */
+.head{display:flex;flex-direction:column;gap:14px;margin-bottom:36px}
+.pains{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:18px}
+.pain{background:#fff;border:2px solid var(--ink);border-radius:14px;padding:16px 16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.pain:nth-child(odd){transform:rotate(-1.2deg)}
+.pain:nth-child(even){transform:rotate(1deg)}
+.pain svg{height:140px;width:100%}
+.pain p{font-family:var(--hand);font-size:21px;line-height:1.25}
+.pain .tag{font-size:12px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--red)}
+
+/* ---------- solution ---------- */
+.solution{background:var(--slate);color:#fff}
+.solution h2{color:var(--sun)}
+.solution .lead{color:#d7dee2}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;counter-reset:s;margin-top:8px}
+.step{border-top:4px solid var(--orange);padding-top:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.step::before{counter-increment:s;content:"Шаг " counter(s);font-weight:900;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--orange)}
+.step p{color:#d7dee2}
+.verdict{margin-top:36px;font-family:var(--hand);font-size:clamp(22px,2.6vw,30px);color:var(--sun)}
+.tech{display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:start;margin-top:56px}
+.scheme{background:#fff;border-radius:14px;padding:18px;min-width:0;overflow-x:auto}
+.scheme svg{min-width:460px;width:100%;height:auto}
+.scheme figcaption{color:var(--muted);font-size:14px;margin-top:8px}
+.specs{min-width:0}
+.specs table{width:100%;border-collapse:collapse;font-size:16px}
+.specs th,.specs td{text-align:left;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.18);vertical-align:top}
+.specs th{font-weight:500;color:#c4ced3;padding-right:16px;width:44%}
+.specs td{font-weight:700}
+
+/* ---------- modes ---------- */
+.modes{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.mode{border:2px solid var(--ink);border-radius:16px;background:#fff;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.mode-lamp{background:var(--slate);display:grid;place-items:center;padding:14px 10px 8px;border-bottom:2px solid var(--ink)}
+.mode-lamp svg{width:100%;max-width:240px;height:auto}
+.mode-body{padding:14px 18px 18px;display:flex;flex-direction:column;gap:6px}
+.mode .t{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--red)}
+.mode b{font-size:19px;line-height:1.25}
+.mode .d{font-family:var(--hand);font-size:20px;color:var(--muted);line-height:1.2}
+.mode-lamp .g{opacity:0}.mode-lamp .dm{fill:#7d211b}
+.rays{display:none}
+
+/* ---------- compare ---------- */
+.cmp-wrap{overflow-x:auto;border:2px solid var(--ink);border-radius:14px;background:#fff}
+.cmp{width:100%;min-width:560px;border-collapse:collapse;font-size:16px}
+.cmp th,.cmp td{padding:10px 18px;border-bottom:1px solid var(--line);text-align:center}
+.cmp th:first-child,.cmp td:first-child{text-align:left}
+.cmp th:nth-child(2),.cmp td:nth-child(2){border-left:1px solid var(--line)}
+.cmp thead th{font-weight:900;background:var(--paper)}
+.cmp thead th:last-child{color:#fff;background:var(--red)}
+.cmp td:last-child{background:#fff6e2;font-weight:700}
+.cmp tr:last-child td{border-bottom:0}
+.was{color:var(--muted);font-weight:500;text-decoration-color:var(--red);text-decoration-thickness:2px;margin-right:6px}
+.y{color:#1d7a3a;font-weight:900}.n{color:var(--red);font-weight:900}
+
+/* ---------- bonus ---------- */
+.bonus{background:var(--red);color:#fff;position:relative;overflow:hidden}
+.bonus h2{color:var(--sun);font-size:clamp(30px,5.6vw,64px)}
+.bonus-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:36px}
+.b-card{background:#fff;color:var(--ink);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:8px;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--ink);min-width:0}
+.b-card .plus{font-family:var(--display);font-size:34px;color:var(--red);line-height:1}
+.b-card p{color:var(--muted)}
+.call{margin-top:32px;font-size:clamp(18px,2vw,22px);font-weight:700;max-width:60ch}
+.call .hand{font-size:1.25em;color:var(--sun);font-weight:400}
+
+/* ---------- inventor ---------- */
+.inventor{display:grid;grid-template-columns:.85fr 1.15fr;gap:40px;align-items:center}
+.portrait{background:var(--sun);border:3px solid var(--ink);border-radius:18px;padding:12px;box-shadow:6px 6px 0 var(--ink);transform:rotate(-1.5deg);min-width:0}
+.portrait svg{width:100%;height:auto}
+.portrait figcaption{font-family:var(--hand);font-size:20px;text-align:center;padding-top:4px}
+blockquote{margin:0;font-size:clamp(21px,2.5vw,28px);line-height:1.38;font-weight:500}
+blockquote::before{content:"«";color:var(--red);font-family:var(--display);font-size:1.4em;line-height:0;vertical-align:-.2em;margin-right:4px}
+.who{margin-top:14px;font-weight:700;color:var(--muted)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:28px}
+.fact{border-left:4px solid var(--orange);padding-left:12px;min-width:0}
+.fact b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.fact span{font-size:14px;color:var(--muted)}
+
+/* ---------- reviews ---------- */
+.reviews{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.rev{background:#fff;border:2px solid var(--ink);border-radius:14px;padding:18px;display:grid;grid-template-columns:72px 1fr;gap:14px;align-items:start;min-width:0}
+.rev svg{width:72px;height:72px}
+.rev p{font-family:var(--hand);font-size:21px;line-height:1.25}
+.rev small{display:block;margin-top:6px;color:var(--muted);font-size:13px}
+.stars{color:var(--orange);letter-spacing:2px;font-size:15px}
+
+/* ---------- order ---------- */
+.order{background:var(--sun);border-block:3px solid var(--ink)}
+.phone{font-family:var(--display);font-size:clamp(26px,4.4vw,48px);color:var(--ink);user-select:all;line-height:1.1}
+.packs{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
+.pack{position:relative;display:block;cursor:pointer;min-width:0}
+.pack input{position:absolute;opacity:0;pointer-events:none}
+.pack .card{background:#fff;border:3px solid var(--ink);border-radius:14px;padding:20px;height:100%;display:flex;flex-direction:column;gap:8px;transition:transform .12s,box-shadow .12s}
+.pack:hover .card{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--ink)}
+.pack input:checked + .card{background:var(--ink);color:#fff;box-shadow:5px 5px 0 var(--red)}
+.pack input:checked + .card .p-price{color:var(--sun)}
+.pack input:focus-visible + .card{outline:3px solid var(--red);outline-offset:3px}
+.p-name{font-weight:900;font-size:19px}
+.p-price{font-family:var(--display);font-size:30px;color:var(--red);line-height:1.1}
+.p-list{margin:0;padding-left:18px;font-size:15px}
+.hit{position:absolute;top:-12px;right:14px;background:var(--red);color:#fff;font-weight:900;font-size:12px;letter-spacing:.08em;padding:4px 10px;border-radius:999px;border:2px solid var(--ink);z-index:1}
+.form{display:grid;grid-template-columns:repeat(3,1fr) auto;gap:14px;align-items:end;margin-top:28px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font-weight:700;font-size:14px}
+.field input,.field select{font:inherit;font-size:16px;padding:12px 14px;border:2px solid var(--ink);border-radius:10px;background:#fff;color:var(--ink);width:100%}
+.stock{margin-top:18px;font-weight:700;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
+.stock .bar{width:200px;max-width:100%;height:12px;border:2px solid var(--ink);border-radius:999px;background:#fff;overflow:hidden}
+.stock .bar i{display:block;height:100%;width:94%;background:var(--red)}
+.done{margin-top:18px;background:#fff;border:3px dashed var(--ink);border-radius:14px;padding:16px 18px;font-size:17px}
+.done b{color:var(--red)}
+
+/* ---------- faq ---------- */
+.faq{display:grid;gap:10px;max-width:820px}
+details{border:2px solid var(--ink);border-radius:12px;background:#fff}
+summary{cursor:pointer;padding:16px 50px 16px 18px;font-weight:700;font-size:18px;list-style:none;position:relative}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";position:absolute;right:18px;top:50%;transform:translateY(-50%);font-family:var(--display);color:var(--red);font-size:22px}
+details[open] summary::after{content:"−"}
+details p{padding:0 18px 18px;color:var(--muted);max-width:66ch}
+details p strong{color:var(--ink)}
+
+/* ---------- finale ---------- */
+.finale{position:relative;overflow:hidden;background:var(--sun);text-align:center;isolation:isolate;padding-block:64px 40px}
+.finale::before{content:"";position:absolute;inset:-60%;z-index:-1;background:repeating-conic-gradient(from 0deg at 50% 60%,var(--sun2) 0 7deg,var(--sun) 7deg 15deg)}
+.finale h2{font-size:clamp(28px,5vw,60px);color:var(--ink);text-shadow:3px 3px 0 #fff}
+.finale svg{width:min(360px,80%);height:auto;margin:20px auto 0}
+.finale .sub{font-family:var(--display);font-size:clamp(20px,3vw,34px);color:var(--red);text-transform:uppercase;margin-top:8px}
+footer{background:var(--ink);color:#c4ced3;font-size:14px;padding-block:28px}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+footer b{color:#fff}
+
+/* ---------- responsive ---------- */
+@media (max-width:900px){
+  .hero-grid,.tech,.inventor{grid-template-columns:1fr}
+  .hero-art{order:-1}
+  .hero-art svg{max-width:320px;max-height:42svh}
+  .steps,.bonus-grid,.packs,.reviews{grid-template-columns:1fr}
+  .modes{grid-template-columns:repeat(2,1fr)}
+  .form{grid-template-columns:1fr 1fr}
+  .form .btn{grid-column:1/-1;justify-content:center}
+  .portrait{max-width:420px}
+}
+@media (max-width:520px){
+  section{padding-block:52px}
+  .hero{padding-block:16px 24px}
+  .hero-grid{gap:12px}
+  .hero-copy{gap:12px}
+  .hero-art svg{max-height:30svh}
+  .hero .lead{font-size:16px}
+  .new{font-size:38px}
+  .btn{font-size:15px;padding:12px 18px}
+  .check-msg{min-height:0;font-size:19px}
+  .check-msg:empty{display:none}
+  .form,.facts{grid-template-columns:1fr}
+  .intro{grid-template-columns:1fr;gap:12px}
+  .stamp{font-size:11px}
+  .stamp em{font-size:18px}
+  .burst{width:72px;height:72px;font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){
+  .hero::before,.ticker span{animation:none}
+  .ticker span{padding-left:0}
+  .pain,.portrait{transform:none}
+  #wiggle{animation:none!important}
+}
+#wiggle{transform-box:fill-box;transform-origin:50% 100%;animation:wig 4s ease-in-out infinite}
+@keyframes wig{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+</style>
+</head>
+<body>
+
+<!-- shared SVG defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="mesh" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(30)">
+      <rect width="7" height="7" fill="#c9d0d4"/>
+      <path d="M0 0H7M0 0V7" stroke="#7d878d" stroke-width="1.3"/>
+    </pattern>
+    <radialGradient id="ballShade" cx="38%" cy="32%" r="70%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".75"/>
+      <stop offset=".55" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#2b3238" stop-opacity=".45"/>
+    </radialGradient>
+    <radialGradient id="ledGlow">
+      <stop offset="0" stop-color="#ff5a3c" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#ff5a3c" stop-opacity="0"/>
+    </radialGradient>
+    <!-- компактный чифирник для повторного использования -->
+    <g id="mini-strainer">
+      <circle cx="50" cy="40" r="30" fill="url(#mesh)" stroke="#5f696f" stroke-width="3"/>
+      <circle cx="50" cy="40" r="30" fill="url(#ballShade)"/>
+      <path d="M43 68 L60 92 M57 68 L40 92" stroke="#5f696f" stroke-width="5" stroke-linecap="round"/>
+      <path d="M58 78 h10 l2 -6" stroke="#5f696f" stroke-width="2" fill="none"/>
+      <path d="M68 73 v-8 a5 5 0 0 1 10 0 v8 z" fill="#c9312a" stroke="#1f262e" stroke-width="1.5"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="ticker" aria-hidden="true"><span>Только сегодня ★ Только у нас ★ Первая партия ограничена ★ Индикатор в комплекте ★ Без приложений и настроек ★ Звоните прямо сейчас ★ Только сегодня ★ Только у нас ★ Индикатор в комплекте ★</span></div>
+
+<!-- =============== HERO =============== -->
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <div class="eyebrow">Революция в чаезаваривании</div>
+      <h1>Чифирник <u>с&nbsp;индикатором</u>!!!</h1>
+      <p class="lead">Первый чифирник, который сам подсказывает, когда чай готов. Опустите его в кружку и больше не гадайте: за вас следит индикатор.</p>
+      <div class="price-row">
+        <span class="old">14 990 ₽</span>
+        <span class="new">1 499 ₽</span>
+        <span class="burst" aria-label="скидка 90 процентов">−90%</span>
+      </div>
+      <div class="btns">
+        <a class="btn btn-main" href="#order">Заказать прямо сейчас</a>
+        <button class="btn btn-alt" id="checkBtn" type="button">Проверить индикатор</button>
+      </div>
+      <p class="check-msg" id="checkMsg" aria-live="polite"></p>
+      <div class="timer"><span id="timerLabel">Акция закончится через</span> <b id="timer">14:59</b></div>
+    </div>
+
+    <div class="hero-art">
+      <div class="stamp">Новинка<em>2026 года</em>патент не нужен</div>
+      <svg viewBox="0 0 400 470" role="img" aria-label="Ситечко-шарик на щипцах, с калибратором и красным индикатором">
+        <!-- ball -->
+        <g id="wiggle">
+          <circle cx="200" cy="150" r="118" fill="url(#mesh)"/>
+          <circle cx="200" cy="150" r="118" fill="url(#ballShade)"/>
+          <circle cx="200" cy="150" r="118" fill="none" stroke="#4d565c" stroke-width="5"/>
+          <path d="M82 150 Q200 182 318 150" fill="none" stroke="#5f696f" stroke-width="7"/>
+          <path d="M96 92 Q200 40 300 86" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="5" stroke-linecap="round"/>
+          <!-- wire loop like on the photo -->
+          <path d="M150 268 C 70 220, 60 70, 160 28" fill="none" stroke="#8b959b" stroke-width="7" stroke-linecap="round"/>
+        </g>
+        <!-- tongs -->
+        <path d="M178 262 L236 340 L268 446" fill="none" stroke="#6b757b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M222 262 L164 340 L132 446" fill="none" stroke="#7f898f" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="200" cy="301" r="11" fill="#9aa4aa" stroke="#4d565c" stroke-width="3"/>
+        <circle cx="132" cy="446" r="13" fill="#9aa4aa" stroke="#4d565c" stroke-width="3"/>
+        <circle cx="268" cy="446" r="13" fill="#9aa4aa" stroke="#4d565c" stroke-width="3"/>
+        <!-- resistor: soldered to left arm -->
+        <path d="M168 336 C 140 330, 120 322, 108 318" fill="none" stroke="#9aa4aa" stroke-width="3"/>
+        <circle cx="168" cy="336" r="7" fill="#b9c1c5" stroke="#4d565c" stroke-width="2"/>
+        <g transform="rotate(14 80 312)">
+          <rect x="52" y="302" width="58" height="20" rx="10" fill="#e5c48b" stroke="#1f262e" stroke-width="2"/>
+          <rect x="62" y="302" width="6" height="20" fill="#7a4a1e"/>
+          <rect x="72" y="302" width="6" height="20" fill="#1f262e"/>
+          <rect x="82" y="302" width="6" height="20" fill="#c62f24"/>
+          <rect x="96" y="302" width="5" height="20" fill="#c9a43a"/>
+        </g>
+        <!-- wire from resistor under the hinge to LED -->
+        <path d="M54 300 C 30 290, 40 260, 80 262 S 250 250, 300 286" fill="none" stroke="#9aa4aa" stroke-width="3"/>
+        <!-- LED: soldered to right arm -->
+        <circle id="glow" cx="314" cy="268" r="70" fill="url(#ledGlow)" opacity="0"/>
+        <path d="M306 300 L300 286 M322 300 L234 340" fill="none" stroke="#9aa4aa" stroke-width="3"/>
+        <circle cx="236" cy="340" r="7" fill="#b9c1c5" stroke="#4d565c" stroke-width="2"/>
+        <rect x="296" y="292" width="36" height="8" rx="2" fill="#a8281f" stroke="#1f262e" stroke-width="2"/>
+        <path id="ledBody" d="M300 292 V266 a14 14 0 0 1 28 0 V292 Z" fill="#c9312a" stroke="#1f262e" stroke-width="2"/>
+        <path d="M306 268 a8 8 0 0 1 8 -9" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/>
+        <!-- callout -->
+        <path d="M376 322 C 384 300, 364 284, 336 280" fill="none" stroke="#1f262e" stroke-width="2.5"/>
+        <path d="M336 280 l11 5 m-11 -5 l9 -8" stroke="#1f262e" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <text x="396" y="348" text-anchor="end" font-family="Neucha, cursive" font-size="22" fill="#1f262e">индикатор</text>
+        <path d="M22 380 C 40 372, 60 360, 66 332" fill="none" stroke="#1f262e" stroke-width="2.5"/>
+        <path d="M66 332 l-8 9 m8 -9 l3 12" stroke="#1f262e" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <text x="2" y="404" font-family="Neucha, cursive" font-size="20" fill="#1f262e">калибратор</text>
+        <text x="2" y="426" font-family="Neucha, cursive" font-size="16" fill="#5b6670">(точной настройки)</text>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<div class="zig" aria-hidden="true"></div>
+
+<!-- =============== INTRO =============== -->
+<section>
+  <div class="wrap intro">
+    <span class="num">ПРАВИЛА ЗАВАРИВАНИЯ ЧАЯ</span>
+    <p>Заваривать и пить чай можно весьма по-разному. Существует масса национальных традиций: японская чайная церемония, китайское искусство гунфу-ча, русское чаепитие, английское чаепитие и другие. И во всех есть <a class="to-pain" href="#beda"><strong>одна общая беда</strong></a>.</p>
+  </div>
+  <!-- PAINS -->
+  <div class="wrap" style="margin-top:64px">
+    <div class="head">
+      <h2 id="beda">Надоело не знать, заварился ли чай?</h2>
+      <p class="lead">Не додержал. Передержал. Ещё раз не додержал. Узнаёте себя?</p>
+    </div>
+    <div class="pains">
+      <!-- 1. плачущий от умиления/горя -->
+      <div class="pain">
+        <svg viewBox="0 0 160 140" aria-hidden="true">
+          <ellipse cx="80" cy="72" rx="52" ry="58" fill="#fff" stroke="#1f262e" stroke-width="3"/>
+          <circle cx="60" cy="62" r="15" fill="#1f262e"/><circle cx="100" cy="62" r="15" fill="#1f262e"/>
+          <circle cx="55" cy="56" r="5" fill="#fff"/><circle cx="95" cy="56" r="5" fill="#fff"/>
+          <circle cx="64" cy="67" r="2.5" fill="#fff"/><circle cx="104" cy="67" r="2.5" fill="#fff"/>
+          <path d="M48 78 q-6 18 0 34 M112 78 q6 18 0 34" stroke="#5ab0e6" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <path d="M62 100 q18 -14 36 0" stroke="#1f262e" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span class="tag">Не додержал</span>
+        <p>Ждал три минуты. Оказалось, надо было четыре или две.</p>
+      </div>
+      <!-- 2. переворот стола -->
+      <div class="pain">
+        <svg viewBox="0 0 160 140" aria-hidden="true">
+          <circle cx="118" cy="40" r="18" fill="#fff" stroke="#1f262e" stroke-width="3"/>
+          <path d="M110 36 l6 3 M124 34 l-5 4 M110 48 q8 -5 16 0" stroke="#1f262e" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M118 58 L112 100 M114 70 L84 52 M114 72 L86 82 M112 100 L100 128 M112 100 L128 126" stroke="#1f262e" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <g transform="rotate(-38 50 80)">
+            <rect x="10" y="74" width="84" height="8" fill="#fff" stroke="#1f262e" stroke-width="3"/>
+            <path d="M18 82 v38 M86 82 v38" stroke="#1f262e" stroke-width="3"/>
+          </g>
+          <g transform="translate(18 10) rotate(-25)">
+            <ellipse cx="20" cy="22" rx="14" ry="11" fill="#8a4b22" stroke="#1f262e" stroke-width="2"/>
+            <path d="M33 20 l10 -6 M6 18 q-6 2 -4 8" stroke="#1f262e" stroke-width="2.5" fill="none"/>
+          </g>
+          <path d="M40 18 l-4 -8 M52 14 l0 -9 M28 28 l-8 -4" stroke="#b3261e" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span class="tag">Передержал</span>
+        <p>Передержал улун. Улун обиделся. Стол тоже.</p>
+      </div>
+      <!-- 3. «серьёзно?» -->
+      <div class="pain">
+        <svg viewBox="0 0 160 140" aria-hidden="true">
+          <path d="M42 30 Q80 6 118 30 Q132 70 118 110 Q80 134 42 110 Q28 70 42 30 Z" fill="#fff" stroke="#1f262e" stroke-width="3"/>
+          <path d="M52 56 h22 M88 54 l22 -4" stroke="#1f262e" stroke-width="3" stroke-linecap="round"/>
+          <path d="M56 66 q8 6 16 0 M90 64 q8 6 16 0" stroke="#1f262e" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <circle cx="64" cy="66" r="3" fill="#1f262e"/><circle cx="98" cy="64" r="3" fill="#1f262e"/>
+          <path d="M80 70 q-4 12 2 16" stroke="#1f262e" stroke-width="2.5" fill="none"/>
+          <path d="M64 100 h32" stroke="#1f262e" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <span class="tag">Спросил чай</span>
+        <p>Спросил у чая, готов ли он. Чай промолчал.</p>
+      </div>
+      <!-- 4. паника, руки на голове -->
+      <div class="pain">
+        <svg viewBox="0 0 160 140" aria-hidden="true">
+          <path d="M44 46 l-6 -16 l14 8 l2 -18 l10 14 l8 -20 l6 18 l12 -16 l2 18 l14 -10 l-4 18 l14 -4 l-8 12" fill="#2b2b2b" stroke="#1f262e" stroke-width="2" stroke-linejoin="round"/>
+          <ellipse cx="80" cy="76" rx="40" ry="46" fill="#fff" stroke="#1f262e" stroke-width="3"/>
+          <circle cx="64" cy="66" r="10" fill="#fff" stroke="#1f262e" stroke-width="2.5"/><circle cx="96" cy="66" r="10" fill="#fff" stroke="#1f262e" stroke-width="2.5"/>
+          <circle cx="64" cy="66" r="3" fill="#1f262e"/><circle cx="96" cy="66" r="3" fill="#1f262e"/>
+          <path d="M54 50 l16 4 M106 50 l-16 4" stroke="#1f262e" stroke-width="3" stroke-linecap="round"/>
+          <ellipse cx="80" cy="100" rx="11" ry="9" fill="#1f262e"/>
+          <path d="M38 64 C 18 56, 20 30, 40 30 M122 64 C 142 56, 140 30, 120 30" stroke="#1f262e" stroke-width="3" fill="#fff"/>
+          <path d="M32 30 q8 -10 18 -4 M128 30 q-8 -10 -18 -4" stroke="#1f262e" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span class="tag">Забыл</span>
+        <p>Оставил ситечко в кружке на ночь. Утром понял, что забыл залить кипяток.</p>
+      </div>
+      <!-- 5. «ну ок» -->
+      <div class="pain">
+        <svg viewBox="0 0 160 140" aria-hidden="true">
+          <path d="M48 26 Q80 10 112 26 Q126 66 110 112 Q80 130 50 112 Q34 66 48 26 Z" fill="#fff" stroke="#1f262e" stroke-width="3"/>
+          <path d="M56 58 q8 -8 18 -2 M86 56 q10 -6 18 2" stroke="#1f262e" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M60 68 q6 4 12 0 M90 68 q6 4 12 0" stroke="#1f262e" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M80 72 v14" stroke="#1f262e" stroke-width="2" />
+          <path d="M66 102 q14 -8 28 0" stroke="#1f262e" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <text x="118" y="128" font-family="Neucha, cursive" font-size="16" fill="#b3261e">ну ок</text>
+        </svg>
+        <span class="tag">Смирился</span>
+        <p>Пил как получилось. Ну ок.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="zig o" aria-hidden="true"></div>
+
+<!-- =============== SOLUTION =============== -->
+<section class="solution">
+  <div class="wrap">
+    <div class="head">
+      <div class="eyebrow" style="color:var(--orange)">Решение!</div>
+      <h2>Революция в чаезаваривании</h2>
+      <p class="lead">Чифирник с индикатором берёт на себя самое сложное в заваривании: понять, когда остановиться. Всё работает в три шага.</p>
+    </div>
+    <div class="steps">
+      <div class="step"><h3>Насыпьте чай</h3><p>Откройте шарик щипцами, насыпьте заварку и закройте. Подходит любой листовой чай, но можно засунуть и пакетик.</p></div>
+      <div class="step"><h3>Опустите в кружку</h3><p>Сетчатый корпус работает как сенсор: он находится в контакте с заваркой всё время, пока идёт экстракция.</p></div>
+      <div class="step"><h3>Следите за индикатором</h3><p>Калибратор передаёт состояние заварки на светодиод. Вам остаётся только смотреть.</p></div>
+    </div>
+    <p class="verdict">Больше никаких «вроде заварился». Только индикатор.</p>
+
+    <div class="tech">
+      <figure class="scheme" style="margin:0">
+        <svg viewBox="0 0 520 260" role="img" aria-label="Схема: сенсорный корпус, калибратор и индикатор в одном контуре">
+          <g fill="none" stroke="#1f262e" stroke-width="2.5">
+            <rect x="30" y="100" width="110" height="60" rx="8" fill="#eef1f2"/>
+            <path d="M140 130 H190"/>
+            <path d="M190 130 l8 -14 l14 28 l14 -28 l14 28 l14 -28 l14 28 l8 -14"/>
+            <path d="M276 130 H320"/>
+            <path d="M320 112 V148 L352 130 Z" fill="#c9312a"/>
+            <path d="M352 112 V148"/>
+            <path d="M332 104 l10 -14 M342 100 l10 -14" stroke="#b3261e" stroke-dasharray="3 3"/>
+            <path d="M352 130 H430 V210 H85 V160"/>
+          </g>
+          <g font-family="Golos Text, sans-serif" font-size="14" fill="#1f262e">
+            <text x="48" y="126" font-weight="700">КОРПУС</text>
+            <text x="48" y="145">сенсор</text>
+            <text x="200" y="168">калибратор</text>
+            <text x="304" y="176">индикатор</text>
+            <text x="178" y="232" fill="#5b6670">контур экстракции</text>
+          </g>
+          <text x="368" y="96" font-family="Neucha, cursive" font-size="17" fill="#b3261e">сигнал готовности</text>
+        </svg>
+        <figcaption>Так работает чифирник. Ничего лишнего.</figcaption>
+      </figure>
+      <div class="specs">
+        <h3 style="color:var(--sun);margin-bottom:10px">Технические характеристики</h3>
+        <table>
+          <tr><th>Корпус-сенсор</th><td>Сетчатый шарик, нержавеющая сталь</td></tr>
+          <tr><th>Калибратор</th><td>Резистивный, ручной подбор</td></tr>
+          <tr><th>Индикатор</th><td>Светодиод, красный</td></tr>
+          <tr><th>Схема</th><td>Последовательная, монтаж на корпус</td></tr>
+          <tr><th>Подзарядка</th><td>Не требуется</td></tr>
+          <tr><th>Приложение</th><td>Не нужно</td></tr>
+          <tr><th>Ресурс индикатора</th><td>Практически вечный</td></tr>
+          <tr><th>Совместимость</th><td>Любая кружка, любой чай</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============== MODES =============== -->
+<section>
+  <div class="wrap">
+    <div class="head">
+      <h2 id="rezhimy">Четыре режима индикатора</h2>
+      <p class="lead">Индикатор различает все стадии заваривания. Достаточно одного взгляда.</p>
+    </div>
+    <div class="modes">
+      <div class="mode">
+        <div class="mode-lamp" style="background:#fff3cf"><svg viewBox="0 0 240 200" aria-hidden="true">
+          <g fill="none" stroke="#1f262e" stroke-width="3" stroke-linecap="round" opacity=".5"><path d="M78 70 c-8 -12 8 -18 0 -30"/><path d="M98 64 c-8 -12 8 -18 0 -30"/></g>
+        <g transform="translate(196 34)"><circle r="18" fill="#fff" stroke="#1f262e" stroke-width="3"/><path d="M0 0 V-11 M0 0 L7 4" stroke="#1f262e" stroke-width="3" stroke-linecap="round"/></g>
+          <circle cx="108" cy="146" r="22" fill="url(#mesh)" stroke="#5f696f" stroke-width="3"/>
+          <path d="M100 126 L142 52 M116 126 L154 58" stroke="#7f898f" stroke-width="6" stroke-linecap="round"/>
+          <path d="M60 92 H160 V160 a26 26 0 0 1 -26 26 H86 a26 26 0 0 1 -26 -26 Z" fill="#e9b65a" fill-opacity="0.45" stroke="#1f262e" stroke-width="3"/>
+          <ellipse cx="110" cy="92" rx="50" ry="7" fill="#e9b65a" stroke="#1f262e" stroke-width="2.5"/>
+          <path d="M160 110 c24 0 24 38 0 38" fill="none" stroke="#1f262e" stroke-width="3"/>
+          <path d="M66 100 v52" stroke="#fff" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+          <path d="M150 52 l10 -6" stroke="#9aa4aa" stroke-width="2.5"/>
+          <rect x="157" y="44" width="16" height="5" rx="1.5" fill="#8c1f18" stroke="#1f262e" stroke-width="1.5"/>
+          <path d="M159 44 V32 a6 6 0 0 1 12 0 V44 Z" fill="#7d211b" stroke="#1f262e" stroke-width="1.8"/>
+        </svg></div>
+        <div class="mode-body"><span class="t">0–3 мин</span><b>Чай заваривается</b><span class="d">Индикатор ждёт</span></div>
+      </div>
+      <div class="mode">
+        <div class="mode-lamp" style="background:#ffe4a3"><svg viewBox="0 0 240 200" aria-hidden="true">
+          <g fill="none" stroke="#1f262e" stroke-width="3" stroke-linecap="round" opacity=".5"><path d="M86 70 c-8 -12 8 -18 0 -30"/></g>
+        <path d="M184 30 l10 10 l20 -22" fill="none" stroke="#1d7a3a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="108" cy="146" r="22" fill="url(#mesh)" stroke="#5f696f" stroke-width="3"/>
+          <path d="M100 126 L142 52 M116 126 L154 58" stroke="#7f898f" stroke-width="6" stroke-linecap="round"/>
+          <path d="M60 92 H160 V160 a26 26 0 0 1 -26 26 H86 a26 26 0 0 1 -26 -26 Z" fill="#c97a22" fill-opacity="0.7" stroke="#1f262e" stroke-width="3"/>
+          <ellipse cx="110" cy="92" rx="50" ry="7" fill="#c97a22" stroke="#1f262e" stroke-width="2.5"/>
+          <path d="M160 110 c24 0 24 38 0 38" fill="none" stroke="#1f262e" stroke-width="3"/>
+          <path d="M66 100 v52" stroke="#fff" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+          <path d="M150 52 l10 -6" stroke="#9aa4aa" stroke-width="2.5"/>
+          <rect x="157" y="44" width="16" height="5" rx="1.5" fill="#8c1f18" stroke="#1f262e" stroke-width="1.5"/>
+          <path d="M159 44 V32 a6 6 0 0 1 12 0 V44 Z" fill="#7d211b" stroke="#1f262e" stroke-width="1.8"/>
+        </svg></div>
+        <div class="mode-body"><span class="t">3–4 мин</span><b>Чай готов</b><span class="d">Индикатор сообщает</span></div>
+      </div>
+      <div class="mode">
+        <div class="mode-lamp" style="background:#f7cdb5"><svg viewBox="0 0 240 200" aria-hidden="true">
+          <g fill="#b3261e" font-family="Rubik Mono One, Arial Black, sans-serif" font-size="34"><text x="182" y="52">!</text><text x="204" y="42">!</text></g>
+        <g transform="translate(46 34)"><circle r="18" fill="#fff" stroke="#1f262e" stroke-width="3"/><path d="M0 0 V-12 M0 0 L-8 6" stroke="#1f262e" stroke-width="3" stroke-linecap="round"/></g>
+          <circle cx="108" cy="146" r="22" fill="url(#mesh)" stroke="#5f696f" stroke-width="3"/>
+          <path d="M100 126 L142 52 M116 126 L154 58" stroke="#7f898f" stroke-width="6" stroke-linecap="round"/>
+          <path d="M60 92 H160 V160 a26 26 0 0 1 -26 26 H86 a26 26 0 0 1 -26 -26 Z" fill="#7a3b14" fill-opacity="0.85" stroke="#1f262e" stroke-width="3"/>
+          <ellipse cx="110" cy="92" rx="50" ry="7" fill="#7a3b14" stroke="#1f262e" stroke-width="2.5"/>
+          <path d="M160 110 c24 0 24 38 0 38" fill="none" stroke="#1f262e" stroke-width="3"/>
+          <path d="M66 100 v52" stroke="#fff" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+          <path d="M150 52 l10 -6" stroke="#9aa4aa" stroke-width="2.5"/>
+          <rect x="157" y="44" width="16" height="5" rx="1.5" fill="#8c1f18" stroke="#1f262e" stroke-width="1.5"/>
+          <path d="M159 44 V32 a6 6 0 0 1 12 0 V44 Z" fill="#7d211b" stroke="#1f262e" stroke-width="1.8"/>
+        </svg></div>
+        <div class="mode-body"><span class="t">5+ мин</span><b>Чай передержан</b><span class="d">Индикатор предупреждает</span></div>
+      </div>
+      <div class="mode">
+        <div class="mode-lamp" style="background:#2b3540"><svg viewBox="0 0 240 200" aria-hidden="true">
+          <path d="M206 22 a18 18 0 1 0 14 28 a14 14 0 1 1 -14 -28 Z" fill="#ffd83d"/>
+        <g fill="#ffef9a"><circle cx="40" cy="26" r="2.5"/><circle cx="70" cy="48" r="2"/><circle cx="170" cy="18" r="2"/><circle cx="24" cy="70" r="2"/><circle cx="226" cy="84" r="2"/></g>
+          <circle cx="108" cy="146" r="22" fill="url(#mesh)" stroke="#5f696f" stroke-width="3"/>
+          <path d="M100 126 L142 52 M116 126 L154 58" stroke="#7f898f" stroke-width="6" stroke-linecap="round"/>
+          <path d="M60 92 H160 V160 a26 26 0 0 1 -26 26 H86 a26 26 0 0 1 -26 -26 Z" fill="#2a140a" fill-opacity="0.95" stroke="#c4ced3" stroke-width="3"/>
+          <ellipse cx="110" cy="92" rx="50" ry="7" fill="#2a140a" stroke="#c4ced3" stroke-width="2.5"/>
+          <path d="M160 110 c24 0 24 38 0 38" fill="none" stroke="#c4ced3" stroke-width="3"/>
+          <path d="M66 100 v52" stroke="#fff" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+          <path d="M150 52 l10 -6" stroke="#9aa4aa" stroke-width="2.5"/>
+          <rect x="157" y="44" width="16" height="5" rx="1.5" fill="#8c1f18" stroke="#1f262e" stroke-width="1.5"/>
+          <path d="M159 44 V32 a6 6 0 0 1 12 0 V44 Z" fill="#7d211b" stroke="#1f262e" stroke-width="1.8"/>
+        </svg></div>
+        <div class="mode-body"><span class="t">всю ночь</span><b>Чифир</b><span class="d">Индикатор уважает ваш выбор</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============== COMPARE =============== -->
+<section>
+  <div class="wrap">
+    <div class="head"><h2>Почувствуйте разницу</h2></div>
+    <div class="cmp-wrap">
+      <table class="cmp">
+        <thead><tr><th></th><th>Обычное ситечко</th><th>Чифирник с индикатором</th></tr></thead>
+        <tbody>
+          <tr><td>Заваривает чай</td><td class="y">да</td><td class="y">да</td></tr>
+          <tr><td>Есть индикатор</td><td class="n">нет</td><td class="y">да</td></tr>
+          <tr><td>Знаете, когда чай готов</td><td class="n">нет</td><td class="y">да</td></tr>
+          <tr><td>Выглядит как технология будущего</td><td class="n">нет</td><td class="y">да</td></tr>
+          <tr><td>Гости спрашивают, где купить</td><td class="n">нет</td><td class="y">постоянно</td></tr>
+          <tr><td>Цена</td><td>199 ₽</td><td><s class="was">199 ₽</s> 1 499 ₽</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- =============== BONUS =============== -->
+<section class="bonus">
+  <div class="wrap">
+    <h2>Но и это ещё не всё!</h2>
+    <div class="bonus-grid">
+      <div class="b-card"><span class="plus">+1</span><h3>Второе ситечко в подарок</h3><p>Обычное, для гостей. Пусть видят разницу.</p></div>
+      <div class="b-card"><span class="plus">+1</span><h3>Запасной калибратор</h3><p>На случай, если вы решите настроить индикатор под свой сорт.</p></div>
+      <div class="b-card"><span class="plus">∞</span><h3>Пожизненная гарантия</h3><p>На индикатор. Мы в нём уверены.</p></div>
+    </div>
+    <p class="call">Позвоните в течение 15 минут, и мы добавим к заказу подарочный мешочек. <span class="hand">Для чифирника, не для чая.</span></p>
+  </div>
+</section>
+
+<!-- =============== INVENTOR =============== -->
+<section>
+  <div class="wrap inventor">
+    <figure class="portrait" style="margin:0">
+      <svg viewBox="0 0 360 380" role="img" aria-label="Рисунок: изобретатель прищурился и держит чифирник у уха">
+        <!-- shoulders / shirt -->
+        <path d="M30 380 C 40 300, 110 280, 180 282 C 250 280, 320 300, 330 380 Z" fill="#2f5fa8" stroke="#1f262e" stroke-width="3"/>
+        <path d="M140 286 l40 30 l40 -30" fill="none" stroke="#1f262e" stroke-width="3"/>
+        <!-- neck -->
+        <path d="M150 250 v40 q30 18 60 0 v-40" fill="#f3d2bd" stroke="#1f262e" stroke-width="3"/>
+        <!-- ears -->
+        <ellipse cx="88" cy="168" rx="16" ry="24" fill="#f3d2bd" stroke="#1f262e" stroke-width="3"/>
+        <ellipse cx="272" cy="168" rx="16" ry="24" fill="#f3d2bd" stroke="#1f262e" stroke-width="3"/>
+        <!-- head: round, a bit wide -->
+        <path d="M96 120 C 96 50, 264 50, 264 120 C 270 190, 250 262, 180 266 C 110 262, 90 190, 96 120 Z" fill="#f6dccb" stroke="#1f262e" stroke-width="3"/>
+        <!-- hair: swept back, medium length, slightly tousled -->
+        <path d="M92 156 C 80 96, 108 40, 178 32 C 246 26, 292 66, 274 156
+                 C 268 132, 264 116, 252 106 C 232 92, 204 88, 180 92
+                 C 150 94, 124 100, 110 114 C 100 126, 95 140, 92 156 Z" fill="#e2c27f" stroke="#1f262e" stroke-width="3" stroke-linejoin="round"/>
+        <g fill="none" stroke="#b8954f" stroke-width="2.6" stroke-linecap="round">
+          <path d="M112 118 C 112 92, 132 64, 166 50"/>
+          <path d="M124 106 C 144 78, 176 60, 222 52"/>
+          <path d="M150 98 C 174 76, 206 66, 248 70"/>
+          <path d="M182 92 C 206 82, 234 82, 260 98"/>
+          <path d="M100 140 C 98 120, 104 104, 116 92"/>
+          <path d="M268 140 C 270 122, 266 106, 256 96"/>
+        </g>
+        <path d="M170 94 C 162 108, 170 120, 160 134" fill="none" stroke="#c9a65f" stroke-width="4" stroke-linecap="round"/>
+        <path d="M170 94 C 162 108, 170 120, 160 134" fill="none" stroke="#1f262e" stroke-width="1.4" stroke-linecap="round" opacity=".55"/>
+        <!-- brows: left raised, right pulled down (squint) -->
+        <path d="M128 132 q22 -16 46 -6" fill="none" stroke="#b89559" stroke-width="6" stroke-linecap="round"/>
+        <path d="M196 140 q24 -2 44 10" fill="none" stroke="#b89559" stroke-width="6" stroke-linecap="round"/>
+        <!-- eyes -->
+        <ellipse cx="150" cy="152" rx="15" ry="10" fill="#fff" stroke="#1f262e" stroke-width="2.5"/>
+        <circle cx="154" cy="153" r="6" fill="#5a3b24"/><circle cx="156" cy="151" r="2" fill="#fff"/>
+        <path d="M200 158 q20 -8 38 2" fill="none" stroke="#1f262e" stroke-width="3" stroke-linecap="round"/>
+        <path d="M204 164 q16 4 30 -2" fill="none" stroke="#1f262e" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>
+        <!-- nose -->
+        <path d="M184 160 C 182 180, 176 192, 186 198 C 194 200, 200 196, 198 190" fill="none" stroke="#1f262e" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- cheeks -->
+        <ellipse cx="132" cy="198" rx="16" ry="9" fill="#efa996" opacity=".55"/>
+        <ellipse cx="232" cy="196" rx="16" ry="9" fill="#efa996" opacity=".55"/>
+        <!-- lopsided smirk -->
+        <path d="M150 226 C 172 232, 200 230, 226 212" fill="none" stroke="#1f262e" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M226 212 l6 -2" stroke="#1f262e" stroke-width="3" stroke-linecap="round"/>
+        <!-- the strainer held up near the left ear -->
+        <g transform="translate(-10 112) scale(1.45)">
+          <use href="#mini-strainer"/>
+        </g>
+        <!-- hand -->
+        <path d="M44 288 C 40 262, 52 246, 68 248 C 84 250, 92 262, 88 286 Z" fill="#f3d2bd" stroke="#1f262e" stroke-width="3"/>
+        <path d="M56 252 v-8 M70 250 v-10" stroke="#1f262e" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <figcaption>Изобретатель. Рисунок с натуры, похоже примерно.</figcaption>
+    </figure>
+    <div>
+      <div class="eyebrow" style="margin-bottom:14px">Изобретатель</div>
+      <blockquote>Я много лет пил чай и ни разу точно не знал, когда он готов. В какой-то момент я понял, что ждать решения бесполезно. Пришлось взять паяльник.»</blockquote>
+      <p class="who">Тимур Листовой, главный конструктор чифирника</p>
+      <div class="facts">
+        <div class="fact"><b>500+</b><span>кружек заварено на испытаниях</span></div>
+        <div class="fact"><b>0</b><span>приложений и проводов</span></div>
+        <div class="fact"><b>1</b><span>индикатор на всю жизнь</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============== REVIEWS =============== -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="head">
+      <h2>Отзывы людей, которых мы нарисовали</h2>
+    </div>
+    <div class="reviews">
+      <div class="rev">
+        <svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="34" fill="#fff" stroke="#1f262e" stroke-width="2.5"/><circle cx="29" cy="34" r="4" fill="#1f262e"/><circle cx="51" cy="34" r="4" fill="#1f262e"/><path d="M26 52 q14 10 28 0" stroke="#1f262e" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
+        <div><div class="stars" aria-label="5 из 5">★★★★★</div><p>Теперь смотрю на индикатор, а не на часы. Чай вкусный.</p><small>Нарисованный покупатель №1</small></div>
+      </div>
+      <div class="rev">
+        <svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="34" fill="#fff" stroke="#1f262e" stroke-width="2.5"/><circle cx="29" cy="35" r="7" fill="#fff" stroke="#1f262e" stroke-width="2"/><circle cx="51" cy="35" r="7" fill="#fff" stroke="#1f262e" stroke-width="2"/><circle cx="29" cy="35" r="2.5" fill="#1f262e"/><circle cx="51" cy="35" r="2.5" fill="#1f262e"/><ellipse cx="40" cy="56" rx="6" ry="5" fill="#1f262e"/></svg>
+        <div><div class="stars" aria-label="5 из 5">★★★★★</div><p>Поставил рядом с чайником. Чайник начал нервничать.</p><small>Нарисованный покупатель №2</small></div>
+      </div>
+      <div class="rev">
+        <svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="34" fill="#fff" stroke="#1f262e" stroke-width="2.5"/><path d="M24 34 q6 4 12 0 M44 34 q6 4 12 0" stroke="#1f262e" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M30 56 q10 -6 20 0" stroke="#1f262e" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
+        <div><div class="stars" aria-label="4 из 5">★★★★☆</div><p>Ну ок.</p><small>Нарисованный покупатель №3</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============== ORDER =============== -->
+<section class="order" id="order">
+  <div class="wrap">
+    <div class="head">
+      <h2 style="color:var(--ink)">Звоните прямо сейчас!</h2>
+      <p class="phone">8-800-ЧАЙ-ЧАЙ-ЧАЙ</p>
+      <p class="lead" style="color:var(--ink)">Или выберите комплект и оставьте заявку. Операторы ответят, как только индикатор скажет, что чай готов.</p>
+    </div>
+    <form id="orderForm" novalidate>
+      <div class="packs" role="radiogroup" aria-label="Комплект">
+        <label class="pack"><input type="radio" name="pack" id="pack-1" value="Базовый">
+          <div class="card"><span class="p-name">Базовый</span><span class="p-price">1 499 ₽</span>
+            <ul class="p-list"><li>Чифирник с индикатором</li><li>Инструкция на одной странице</li></ul></div></label>
+        <label class="pack"><span class="hit">ХИТ</span><input type="radio" name="pack" id="pack-2" value="Чайный мастер" checked>
+          <div class="card"><span class="p-name">Чайный мастер</span><span class="p-price">2 999 ₽</span>
+            <ul class="p-list"><li>Всё из «Базового»</li><li>Второе ситечко (без индикатора)</li><li>Запасной калибратор</li></ul></div></label>
+        <label class="pack"><input type="radio" name="pack" id="pack-3" value="Чифир-магнат">
+          <div class="card"><span class="p-name">Чифир-магнат</span><span class="p-price">9 999 ₽</span>
+            <ul class="p-list"><li>Всё из «Чайного мастера»</li><li>Сертификат «Индикатор проверен изобретателем лично» (он на него посмотрел)</li></ul></div></label>
+      </div>
+      <div class="form">
+        <div class="field"><label for="f-name">Имя</label><input id="f-name" name="name" autocomplete="off" placeholder="Как к вам обращаться"></div>
+        <div class="field"><label for="f-phone">Телефон</label><input id="f-phone" name="phone" inputmode="tel" autocomplete="off" placeholder="+7 ..."></div>
+        <div class="field"><label for="f-how">Как вы узнаёте, что чай готов?</label>
+          <select id="f-how" name="how"><option>По индикатору</option><option>По цвету</option><option>По вкусу</option><option>Никак</option></select></div>
+        <button class="btn btn-main" type="submit">Хочу индикатор!</button>
+      </div>
+      <div class="stock"><span>Осталось на складе: много</span><span class="bar" aria-hidden="true"><i></i></span><span style="font-weight:400;color:var(--muted)">Первая партия почти закончилась.</span></div>
+      <div class="done" id="done" hidden aria-live="polite"></div>
+    </form>
+  </div>
+</section>
+
+<!-- =============== FAQ =============== -->
+<section>
+  <div class="wrap">
+    <div class="head"><h2>Вопросы и ответы</h2></div>
+    <div class="faq">
+      <details><summary>Что показывает индикатор?</summary><p>Готовность вашего чая. Подробности в разделе <a class="to-pain" href="#rezhimy">«Четыре режима индикатора»</a>.</p></details>
+      <details><summary>Нужно ли менять батарейки?</summary><p>Нет. Чифирник никогда не попросит у вас батарейку.</p></details>
+      <details><summary>Нужно ли приложение?</summary><p>Нет. Индикатор находится прямо на чифирнике, а не в телефоне.</p></details>
+      <details><summary>Можно опускать в кипяток?</summary><p>Шарик с чаем нужно. <strong>Индикатор и калибратор держите над водой:</strong> в кружку опускается только сетчатый шарик.</p></details>
+      <details><summary>Подходит для гунфу-ча и японской церемонии?</summary><p>Подходит для любой традиции. Японская, китайская, русская, английская: чай везде должен быть готов вовремя.</p></details>
+      <details><summary>Можно ли взять с собой в отпуск?</summary><p>Конечно. Чифирник не нужно заряжать, ему не нужна розетка и переходник, а места он занимает меньше кружки. Индикатор работает в любом часовом поясе и на любом языке.</p></details>
+      <details><summary>Почему «чифирник»?</summary><p>Потому что выдерживает даже самую крепкую заварку.</p></details>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  // --- проверка индикатора: светодиод моргает ---
+  var btn=document.getElementById('checkBtn'), msg=document.getElementById('checkMsg'), glow=document.getElementById('glow'), led=document.getElementById('ledBody');
+  var lines=['Индикатор исправен.','Индикатор исправен. Можно заваривать.','Проверка пройдена.','Индикатор в отличной форме.','Всё ещё исправен.'];
+  var n=0, busy=false;
+  function blink(seq){ var i=0; busy=true;
+    (function f(){ var on=seq[i]; glow.setAttribute('opacity',on?1:0); led.setAttribute('fill',on?'#ff4a3a':'#c9312a');
+      i++; if(i<seq.length) setTimeout(f,on?160:120); else busy=false; })(); }
+  btn.addEventListener('click',function(){
+    if(busy) return;
+    msg.textContent=lines[Math.min(n,lines.length-1)]; n++;
+    blink([1,0,1,0]);
+  });
+
+  // --- вечная акция ---
+  var t=document.getElementById('timer'), lab=document.getElementById('timerLabel');
+  var left=14*60+59, rounds=0;
+  function draw(){ var m=Math.floor(left/60), s=left%60; t.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s; }
+  draw();
+  setInterval(function(){
+    left--;
+    if(left<0){ left=14*60+59; rounds++; lab.textContent= rounds===1?'Акцию продлили! Закончится через':'Акцию снова продлили. Закончится через'; }
+    draw();
+  },1000);
+
+  // --- форма, которая ничего не отправляет ---
+  var form=document.getElementById('orderForm'), done=document.getElementById('done');
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var pack=(form.querySelector('input[name=pack]:checked')||{}).value||'Чайный мастер';
+    var name=document.getElementById('f-name').value.trim();
+    var how=document.getElementById('f-how').value;
+    var answer={ 'По индикатору':'Отличный выбор. Теперь это будет так всегда.',
+                 'По цвету':'Скоро вам это не понадобится.',
+                 'По вкусу':'Классика. Индикатор подтвердит, что вы правы.',
+                 'Никак':'Понимаем. Именно для вас мы его и сделали.'}[how];
+    done.innerHTML='<b>'+(name? name.replace(/[<>&"]/g,'')+', заявка' : 'Заявка')+' на комплект «'+pack+'» принята.</b> '+answer+
+      ' (Это демонстрационный сайт: заявка никуда не отправлена.)';
+    done.hidden=false;
+  });
+})();
+</script>
+</body>
+</html>
